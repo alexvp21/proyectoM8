@@ -32,17 +32,37 @@ public class Login extends HttpServlet {
 					String url = "jdbc:hsqldb:hsql://localhost/Tienda";
 			        String user = "SA";
 			        String password = "";
+			        Statement stmt = null;
+			        ResultSet rs = null;
 					try (Connection con = DriverManager.getConnection(url, user, password)) {
 						boolean inDataBase = false;
-			            Statement stmt = con.createStatement();
-			            ResultSet rs = stmt.executeQuery("SELECT * FROM Usuarios WHERE USUARIO='"+usuario+"'");
-			            while(rs.next()) {
-			                String usuarioBD = rs.getString("USUARIO");
-			                if (usuarioBD.equalsIgnoreCase(usuario)) {
-			                	inDataBase = true;
-			                }
-			            }
-			            if (inDataBase != true) {			            	
+						try {
+							stmt = con.createStatement();
+						} catch (Exception e) {
+							System.err.println("FALLO!");
+						} finally {
+							if (stmt != null) {
+								stmt.close();								
+							}
+						}
+			            try {
+			            	if (stmt != null) {
+				            	rs = stmt.executeQuery("SELECT * FROM Usuarios WHERE USUARIO='"+usuario+"'");
+				            	while(rs.next()) {
+					                String usuarioBD = rs.getString("USUARIO");
+					                if (usuarioBD.equalsIgnoreCase(usuario)) {
+					                	inDataBase = true;
+					                }
+					            }
+			            	}
+						} catch (Exception e) {
+							System.err.println("FALLO!");
+						} finally {
+							if (rs != null) {
+								rs.close();								
+							}
+						}
+			            if (inDataBase != true & stmt != null) {			            	
 				            stmt.executeQuery("INSERT INTO USUARIOS(\"USUARIO\", \"CONTRASENYA\", \"EMAIL\") VALUES('"+usuario+"', '"+pass+"', '"+email+"')");
 				            con.commit();
 				            request.setAttribute("infoForm", "Si es valido");
@@ -50,9 +70,9 @@ public class Login extends HttpServlet {
 			            } else {
 			            	request.setAttribute("user", "usuario ya registrado en la base de datos");
 			            }
-		        } catch (SQLException e) {
-					e.printStackTrace();
-				}
+			        } catch (SQLException e) {
+						System.err.println("Otro FALLO!");
+					}
 			} catch (ClassNotFoundException e) {
 				System.err.println("FALLO!");
 			}
