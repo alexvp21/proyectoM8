@@ -1,6 +1,8 @@
 package formulario;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -25,12 +27,16 @@ public class Login extends HttpServlet {
 	private Statement stmt;
 	private ResultSet rs;
 	private Connection con;
-	  PreparedStatement pstmt;
+	PreparedStatement pstmt;
 
 	
 	public Login() {
 		super();
 	}
+	
+	private static final Pattern pUser = Pattern.compile(Constantes.USEREXP);
+	private static final Pattern pPass = Pattern.compile(Constantes.PASSEXP);
+	private static final Pattern pEmail = Pattern.compile(Constantes.EMAILEXP);
 	
 	private static final Logger LOGGER = Logger.getLogger(Login.class.getName());
 	protected void doGet(HttpServletRequest request, HttpServletResponse resp) throws ServletException, IOException {
@@ -45,36 +51,47 @@ public class Login extends HttpServlet {
 			stmt = null;
 	        rs = null;
 			
-            if (userExist(usuario, params) == Boolean.TRUE && stmt != null) {			            	
+            if (userExist(usuario, params) == Boolean.FALSE && stmt != null) {			            	
 	            try {
 	            	LOGGER.warning("Insert y commit en BBDD");
-					stmt.executeQuery("INSERT INTO USUARIOS(\"USUARIO\", \"CONTRASENYA\", \"EMAIL\") VALUES('"+usuario+"', '"+pass+"', '"+email+"')");
+					stmt.executeUpdate("INSERT INTO usuarios VALUES('"+usuario+"', '"+pass+"', '"+email+"')");
 					con.commit();
 				} catch (SQLException e) {
 					LOGGER.log(Level.SEVERE, Constantes.ERRORSQL, e);
 				}
 	            request.setAttribute("infoForm", "Si es valido");
 	            request.setAttribute("user", "usuario: "+usuario);
+	            request.setAttribute("status", "ok");
             } else {
             	request.setAttribute("user", "usuario ya registrado en la base de datos");
+            	request.setAttribute("status", "fail");
             }
 		} else {
 			request.setAttribute("infoForm", "No es valido");
+			request.setAttribute("status", "fail");
 		}
 		getServletContext().getRequestDispatcher("/JSP/info.jsp").forward(request, resp);
 	}
 	
 	private Boolean comprobarCampos(String user, String pass, String email) {
-		Pattern pUser = Pattern.compile("([A-Za-z]*[\\d]*){0,9}");
-		Matcher mUser = pUser.matcher(user);
-		
-		Pattern pPass = Pattern.compile("([A-Za-z]*[\\d]*){8,}");
-		Matcher mPass = pPass.matcher(pass);
-		
-		Pattern pEmail = Pattern.compile("^[A-Za-z0-9]*((\\.)?[a-z0-9])*@[a-z]*(-)?[a-z](\\.com|\\.es|\\.org|.)+$");
-		Matcher mEmail = pEmail.matcher(email);
-		
-		return (mUser.matches() && mPass.matches() && mEmail.matches())? Boolean.TRUE : Boolean.FALSE;
+		boolean resp = false;
+		try {
+			LOGGER.info("Se ejecuta el regex para los campos");
+			Properties prop = new Properties();
+			InputStream input = new FileInputStream("/home/alex/git/proyectoM8/Formulario1/config/database.properties");
+			prop.load(input);
+			
+			Matcher mUser = pUser.matcher(user);
+			
+			Matcher mPass = pPass.matcher(pass);
+			
+			Matcher mEmail = pEmail.matcher(email);
+			resp = (mUser.matches() && mPass.matches() && mEmail.matches())? Boolean.TRUE : Boolean.FALSE;
+		} catch (Exception e) {
+			LOGGER.log(Level.SEVERE, Constantes.ERROR, e);
+			resp = false;
+		}
+		return resp;
 	}
 	
 	private HashMap<String, String> getConection() {
@@ -82,7 +99,7 @@ public class Login extends HttpServlet {
 		HashMap<String, String> connect = new HashMap<>();
 		try {
 			LOGGER.info("Se configura la conexión a BBDD");
-			InputStream input = new FileInputStream("../../config/database.properties");
+			InputStream input = new FileInputStream("/home/alex/git/proyectoM8/Formulario1/config/database.properties");
 			prop.load(input);
 			
 			connect.put(Constantes.BBDD, prop.getProperty(Constantes.BBDD));
@@ -97,7 +114,11 @@ public class Login extends HttpServlet {
 	private boolean userExist(String usuario, HashMap<String, String> params) {
 		boolean inDataBase = false;
 		try {
-			con = DriverManager.getConnection(params.get(Constantes.BBDD), params.get(Constantes.BDUSER), params.get(Constantes.BDPASS));
+            Class.forName("com.mysql.cj.jdbc.Driver").newInstance();
+			Properties bdprops = new Properties();
+			bdprops.put("user", params.get(Constantes.BDUSER));
+			bdprops.put("password", params.get(Constantes.BDPASS));
+			con = DriverManager.getConnection(params.get(Constantes.BBDD), bdprops);
 			LOGGER.info("Se comienza la transacción");
 			inDataBase = initConnection(usuario);
 		} catch (Exception e) {
@@ -112,7 +133,7 @@ public class Login extends HttpServlet {
 		try {
         	LOGGER.warning("Se lanza el select de usuarios");
         	if (stmt != null) {
-        		String query = "SELECT * FROM Usuarios WHERE USUARIO = ?";
+        		String query = "SELECT * FROM usuarios WHERE usuario = ?";
         	    pstmt = con.prepareStatement(query);
         	    pstmt.setString(1, usuario);
         	    rs = pstmt.executeQuery();
@@ -125,7 +146,6 @@ public class Login extends HttpServlet {
         	}
 		} catch (Exception e) {
 			LOGGER.log(Level.SEVERE, Constantes.ERRORSQL, e);
-		} finally {
 			if (rs != null) {
 				rs.close();								
 			}
@@ -141,7 +161,6 @@ public class Login extends HttpServlet {
 			inDataBase = findUser(usuario);
 		} catch (Exception e) {
 			LOGGER.log(Level.SEVERE, Constantes.ERROR, e);
-		} finally {
 			if (stmt != null) {
 				stmt.close();								
 			}
