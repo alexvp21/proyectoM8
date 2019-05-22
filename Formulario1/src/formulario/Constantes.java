@@ -1,5 +1,10 @@
 package formulario;
 
+/**
+ * @author alex
+ *
+ *Clase solamente de constantes
+ */
 public class Constantes{
 
 	private Constantes() {

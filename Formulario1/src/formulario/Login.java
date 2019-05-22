@@ -21,6 +21,10 @@ import java.util.logging.Logger;
 import java.util.HashMap;
 import java.util.Properties;
 
+/**
+ * @author alex
+ *
+ */
 @WebServlet("/login")
 public class Login extends HttpServlet {
 	
@@ -28,17 +32,22 @@ public class Login extends HttpServlet {
 	private ResultSet rs;
 	private Connection con;
 	PreparedStatement pstmt;
-
 	
+	/**
+	 * Public constructor
+	 */
 	public Login() {
 		super();
 	}
 	
+	/**
+	 * Las constantes para poder hacer las comprobaciones Regex y el logger
+	 */
 	private static final Pattern pUser = Pattern.compile(Constantes.USEREXP);
 	private static final Pattern pPass = Pattern.compile(Constantes.PASSEXP);
 	private static final Pattern pEmail = Pattern.compile(Constantes.EMAILEXP);
-	
 	private static final Logger LOGGER = Logger.getLogger(Login.class.getName());
+	
 	protected void doGet(HttpServletRequest request, HttpServletResponse resp) throws ServletException, IOException {
 		String usuario = request.getParameter("user");
 		String pass = request.getParameter("password");
@@ -73,6 +82,14 @@ public class Login extends HttpServlet {
 		getServletContext().getRequestDispatcher("/JSP/info.jsp").forward(request, resp);
 	}
 	
+	/**
+	 * @param user
+	 * @param pass
+	 * @param email
+	 * @return boolean
+	 * 
+	 * Comprueba los campos que recibe del formulario y aplica los Regex.
+	 */
 	private Boolean comprobarCampos(String user, String pass, String email) {
 		boolean resp = false;
 		try {
@@ -94,6 +111,10 @@ public class Login extends HttpServlet {
 		return resp;
 	}
 	
+	/**
+	 * @return HashMap 
+	 * Retorna los parametro de conexión a la base de datos 
+	 */
 	private HashMap<String, String> getConection() {
 		Properties prop = new Properties();
 		HashMap<String, String> connect = new HashMap<>();
@@ -111,6 +132,12 @@ public class Login extends HttpServlet {
 		return connect;
 	}
 	
+	/**
+	 * @param usuario
+	 * @param params
+	 * @return boolean
+	 * Retorna un boolean para saber si un usuario ya está en la base de datos
+	 */
 	private boolean userExist(String usuario, HashMap<String, String> params) {
 		boolean inDataBase = false;
 		try {
@@ -128,6 +155,13 @@ public class Login extends HttpServlet {
 		return inDataBase;
 	}
 	
+	/**
+	 * @param usuario
+	 * @return boolean
+	 * @throws SQLException
+	 * Retorna un boolean para saber si el usuario que le pasams
+	 * coincide con algun usuario de la base de datos
+	 */
 	private boolean findUser(String usuario) throws SQLException {
 		boolean inDataBase = false;
 		try {
@@ -153,6 +187,13 @@ public class Login extends HttpServlet {
 		return inDataBase;
 	}
 	
+	/**
+	 * @param usuario
+	 * @return boolean
+	 * @throws SQLException
+	 * Inicia la conexión para lanzar la busqueda del usuario
+	 * y saber si esta en la base de datos
+	 */
 	private boolean initConnection(String usuario) throws SQLException {
 		boolean inDataBase = false;
 		try {

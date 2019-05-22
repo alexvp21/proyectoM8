@@ -17,7 +17,6 @@ public class Form extends HttpServlet {
     
     protected void doGet(HttpServletRequest request, HttpServletResponse resp) throws ServletException, IOException {
 		getServletContext().getRequestDispatcher("/JSP/form.jsp").forward(request, resp);
-//		hola mundo
 	}
 
 
